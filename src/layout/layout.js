@@ -90,6 +90,8 @@
     CONTENT: 'mdl-layout__content',
     DRAWER_BTN: 'mdl-layout__drawer-button',
 
+    FIXED_DRAWER: 'mdl-layout--fixed-drawer',
+
     ICON: 'material-icons',
 
     JS_RIPPLE_EFFECT: 'mdl-js-ripple-effect',
@@ -119,6 +121,7 @@
     IS_COMPACT: 'is-compact',
     IS_SMALL_SCREEN: 'is-small-screen',
     IS_DRAWER_OPEN: 'is-visible',
+    IS_DRAWER_OPENNED: 'is-open',
     IS_ACTIVE: 'is-active',
     IS_UPGRADED: 'is-upgraded',
     IS_ANIMATING: 'is-animating',
@@ -175,18 +178,24 @@
 
   /**
    * Handles changes in screen size.
-   *
+   * @param {Event} evt The event that fired.
    * @private
    */
-  MaterialLayout.prototype.screenSizeHandler_ = function() {
+  MaterialLayout.prototype.screenSizeHandler_ = function(evt) {
     if (this.screenSizeMediaQuery_.matches) {
       this.element_.classList.add(this.CssClasses_.IS_SMALL_SCREEN);
+      if (evt !== undefined && this.drawer_) {
+        this.toggleFixedDrawer();
+      }
     } else {
       this.element_.classList.remove(this.CssClasses_.IS_SMALL_SCREEN);
       // Collapse drawer (if any) when moving to a large screen size.
       if (this.drawer_) {
         this.drawer_.classList.remove(this.CssClasses_.IS_DRAWER_OPEN);
         this.obfuscator_.classList.remove(this.CssClasses_.IS_DRAWER_OPEN);
+        if (evt !== undefined) {
+          this.toggleFixedDrawer();
+        }
       }
     }
   };
@@ -254,6 +263,28 @@
   MaterialLayout.prototype.resetPanelState_ = function(panels) {
     for (var j = 0; j < panels.length; j++) {
       panels[j].classList.remove(this.CssClasses_.IS_ACTIVE);
+    }
+  };
+
+  /**
+  * Toggle fixed drawer state
+  *
+  * @public
+  */
+  MaterialLayout.prototype.toggleFixedDrawer = function() {
+    var drawerButton =
+      this.element_.querySelector('.' + this.CssClasses_.DRAWER_BTN);
+    var isFixedDrawer =
+      this.element_.classList.contains(this.CssClasses_.FIXED_DRAWER);
+    if (isFixedDrawer) {
+      this.drawer_.classList.toggle(this.CssClasses_.IS_DRAWER_OPENNED);
+      if (this.drawer_.classList.contains(this.CssClasses_.IS_DRAWER_OPENNED)) {
+        this.drawer_.setAttribute('aria-hidden', 'false');
+        drawerButton.setAttribute('aria-expanded', 'true');
+      } else {
+        this.drawer_.setAttribute('aria-hidden', 'true');
+        drawerButton.setAttribute('aria-expanded', 'false');
+      }
     }
   };
 
@@ -423,9 +454,24 @@
             this.drawerToggleHandler_.bind(this));
         this.obfuscator_ = obfuscator;
 
+        this.drawer_.setAttribute('tabindex', '-1');
         this.drawer_.addEventListener('keydown',
             this.keyboardEventHandler_.bind(this));
-        this.drawer_.setAttribute('aria-hidden', 'true');
+        this.drawer_.addEventListener('transitionend',
+            function() {
+              if (this.drawer_) {
+                console.log('focusing drawer');
+                this.drawer_.focus();
+              }
+            }.bind(this));
+        // this.drawer_.setAttribute('aria-hidden', true);
+        if (this.element_.classList.contains(this.CssClasses_.FIXED_DRAWER)) {
+          this.drawer_.setAttribute('aria-hidden', 'false');
+          this.drawer_.classList.add(this.CssClasses_.IS_DRAWER_OPENNED);
+          drawerButton.setAttribute('aria-expanded', 'true');
+        } else {
+          this.drawer_.setAttribute('aria-hidden', true);
+        }
       }
 
       // Keep an eye on screen size, and add/remove auxiliary class for styling
@@ -566,7 +612,6 @@
     });
 
     tab.show = selectTab;
-
   }
   window['MaterialLayoutTab'] = MaterialLayoutTab;
 

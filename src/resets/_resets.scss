@@ -53,3 +53,10 @@ main {
 *[hidden] {
   display: none !important;
 }
+
+/*
+* Apply outline 0 to elements with tabindex
+*/
+[tabindex='-1'] {
+  outline: 0;
+}
